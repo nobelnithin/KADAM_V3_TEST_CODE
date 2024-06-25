@@ -331,7 +331,7 @@ void app_main(void)
       vTaskDelay(100/portTICK_PERIOD_MS);
     }
     printf("--------------------------------------------------------------------------\n");
-    printf("4.Buttons works Fine!\n");
+    printf("4.All Buttons works Fine!\n");
     vTaskDelay(400/portTICK_PERIOD_MS);
     ssd1306_bitmaps(&dev, 0, 0, all_done, 128, 64, false);
     ssd1306_display_text(&dev, 7, "   Good to go!", 15, true);
