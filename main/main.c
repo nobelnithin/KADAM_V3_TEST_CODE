@@ -329,7 +329,7 @@ void app_main(void)
     xTaskCreate(BTN_DOWNTask, "BTN_DOWNTask", 2048, NULL, 1, NULL);
     xTaskCreate(BTN_PWRTask, "BTN_PWRTask", 2048, NULL, 1, NULL);
     xTaskCreate(BTN_OKTask, "BTN_OKTask", 8000, NULL, 1, NULL);
-    while(count!=4 || count>4)
+    while(count!=4)
     {
       vTaskDelay(100/portTICK_PERIOD_MS);
     }
