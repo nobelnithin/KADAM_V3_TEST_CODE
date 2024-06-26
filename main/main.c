@@ -14,17 +14,20 @@
 #define BTN_DOWN GPIO_NUM_17
 #define BTN_PWR GPIO_NUM_15
 #define BTN_OK GPIO_NUM_16
+#define VBUS_INTR GPIO_NUM_36
 
 xQueueHandle BTN_UPQueue;
 xQueueHandle BTN_DOWNQueue;
 xQueueHandle BTN_PWRQueue;
 xQueueHandle BTN_OKQueue;
+xQueueHandle VBUS_INTRQueue;
 
 
 uint32_t pre_time_up = 0;
 uint32_t pre_time_down = 0;
 uint32_t pre_time_pwr = 0;
 uint32_t pre_time_ok = 0;
+uint8_t pre_time_vbus_intr = 0;
 uint64_t pre_time= 0;
 SSD1306_t dev;
 
@@ -38,6 +41,7 @@ bool up_flag =true;
 bool down_flag =true;
 bool pwr_flag =true;
 bool ok_flag =true;
+bool vbus_flag =true;
 
 
 uint8_t all_done [1024] = {
@@ -160,8 +164,8 @@ void BTN_DOWNTask(void *params)
 
 void BTN_PWRTask(void *params)
 {
-    gpio_set_direction(BTN_OK, GPIO_MODE_INPUT);
-    gpio_set_intr_type(BTN_OK, GPIO_INTR_NEGEDGE);
+    gpio_set_direction(BTN_PWR, GPIO_MODE_INPUT);
+    gpio_set_intr_type(BTN_PWR, GPIO_INTR_NEGEDGE);
     int BTN_NUMBER = 0;
     while (1)
     {
@@ -185,8 +189,8 @@ void BTN_PWRTask(void *params)
 
 void BTN_OKTask(void *params)
 {
-    gpio_set_direction(BTN_PWR, GPIO_MODE_INPUT);
-    gpio_set_intr_type(BTN_PWR, GPIO_INTR_NEGEDGE);
+    gpio_set_direction(BTN_OK, GPIO_MODE_INPUT);
+    gpio_set_intr_type(BTN_OK, GPIO_INTR_NEGEDGE);
     int BTN_NUMBER = 0;
     while (1)
     {
@@ -203,6 +207,30 @@ void BTN_OKTask(void *params)
             xQueueReset(BTN_OKQueue);
         }
         vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+}
+
+void VBUS_INTRTask(void *params)
+{
+    gpio_set_direction(VBUS_INTR, GPIO_MODE_INPUT);
+    gpio_set_intr_type(VBUS_INTR, GPIO_INTR_POSEDGE);
+    int BTN_NUMBER = 0;
+    while (1)
+    {
+        if (xQueueReceive(VBUS_INTRQueue, &BTN_NUMBER, portMAX_DELAY))
+        {
+            
+            ssd1306_clear_screen(&dev, false);
+            ssd1306_display_text(&dev, 0, " Charging..", 12, false);
+            ssd1306_display_text(&dev, 3, " Check lED..", 13, false);
+            if(vbus_flag)
+            {
+                printf("Charging....!\n");
+                vbus_flag=false;
+            }
+            xQueueReset(VBUS_INTRQueue);
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
 
@@ -247,6 +275,15 @@ static void IRAM_ATTR BTN_OK_interrupt_handler(void *args)
     pre_time_ok = esp_timer_get_time();
 }
 
+static void IRAM_ATTR VBUS_INTR_interrupt_handler(void *args)
+{
+    int pinNumber = (int)args;
+    if(esp_timer_get_time() - pre_time_vbus_intr > 400000){
+    xQueueSendFromISR(VBUS_INTRQueue, &pinNumber, NULL);
+    }
+    pre_time_vbus_intr = esp_timer_get_time();
+}
+
 void app_main(void)
 {
 	
@@ -257,6 +294,7 @@ void app_main(void)
     BTN_DOWNQueue = xQueueCreate(10, sizeof(int));
     BTN_PWRQueue = xQueueCreate(10, sizeof(int));
     BTN_OKQueue = xQueueCreate(10, sizeof(int));
+    VBUS_INTRQueue = xQueueCreate(10, sizeof(int));
 
 #if CONFIG_I2C_INTERFACE
 	ESP_LOGI(TAG, "INTERFACE is i2c");
@@ -277,6 +315,7 @@ void app_main(void)
     gpio_isr_handler_add(BTN_DOWN, BTN_DOWN_interrupt_handler, (void *)BTN_DOWN);
     gpio_isr_handler_add(BTN_PWR, BTN_PWR_interrupt_handler, (void *)BTN_PWR);
     gpio_isr_handler_add(BTN_OK, BTN_OK_interrupt_handler, (void *)BTN_OK);
+    gpio_isr_handler_add(VBUS_INTR, VBUS_INTR_interrupt_handler, (void *)BTN_OK);
 #if CONFIG_SSD1306_128x64
 	ESP_LOGI(TAG, "Panel is 128x64");
 	ssd1306_init(&dev, 128, 64);
@@ -329,6 +368,7 @@ void app_main(void)
     xTaskCreate(BTN_DOWNTask, "BTN_DOWNTask", 2048, NULL, 1, NULL);
     xTaskCreate(BTN_PWRTask, "BTN_PWRTask", 2048, NULL, 1, NULL);
     xTaskCreate(BTN_OKTask, "BTN_OKTask", 8000, NULL, 1, NULL);
+
     while(count!=4)
     {
       vTaskDelay(100/portTICK_PERIOD_MS);
@@ -336,7 +376,20 @@ void app_main(void)
     printf("--------------------------------------------------------------------------\n");
     printf("4.All Buttons works Fine! ");
     printf("\xE2\x9C\x93\n");
-    vTaskDelay(400/portTICK_PERIOD_MS);
+    printf("Connect Charger!");
+    xTaskCreate(VBUS_INTRTask, "VBUS_INTRTask", 8000, NULL, 1, NULL);
+
+    ssd1306_clear_screen(&dev, false);
+    while(vbus_flag)
+    {
+        ssd1306_display_text(&dev, 1, "Connect", 8, false);
+        ssd1306_display_text(&dev, 3, "  Charger", 10, false);
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+    ssd1306_clear_screen(&dev, false);
+    ssd1306_display_text(&dev, 1, "Charging", 9, false);
+    ssd1306_display_text(&dev, 3, "  check LED", 12, false);
+    vTaskDelay(3000/portTICK_PERIOD_MS);
     ssd1306_bitmaps(&dev, 0, 0, all_done, 128, 64, false);
     ssd1306_display_text(&dev, 7, "   Good to go!", 15, true);
     printf("All test done :) ");
