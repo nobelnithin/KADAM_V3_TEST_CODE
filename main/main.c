@@ -119,7 +119,7 @@ void BTN_UPTask(void *param)
     {
         if (xQueueReceive(BTN_UPQueue, &BTN_NUMBER, portMAX_DELAY))
         {
-            printf("Up Button pressed\n");
+            printf("Up Button pressed!\n");
             ssd1306_clear_screen(&dev, false);
             ssd1306_display_text_x3(&dev, 0, " Up", 3, false);
             
@@ -293,7 +293,8 @@ void app_main(void)
 	ssd1306_display_text(&dev, 1, "Display", 8, false);
     ssd1306_display_text(&dev, 3, "  test", 8, false);
     ssd1306_display_text(&dev, 5, "    Done", 10, false);
-    printf("1.Display test Done!\n");
+    printf("1.Display test Done! ");
+    printf("\xE2\x9C\x93\n");
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
     soc = max17260_read_soc();
     ssd1306_clear_screen(&dev, false);
@@ -302,7 +303,8 @@ void app_main(void)
 	    ssd1306_display_text(&dev, 1, "Battery", 8, false);
         ssd1306_display_text(&dev, 3, "  test", 8, false);
         ssd1306_display_text(&dev, 5, "    Done", 10, false);
-        printf("2.Battery test Done!(Batter status: %.2f%%)\n",soc);        
+        printf("2.Battery test Done!(Batter status: %.2f%%) ",soc);  
+        printf("\xE2\x9C\x93\n");      
     }
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
     who_am_i_reg = mpu6050_who_am_i();
@@ -312,7 +314,8 @@ void app_main(void)
         ssd1306_display_text(&dev, 1, "MPU6050", 7, false);
         ssd1306_display_text(&dev, 3, "  test", 8, false);
         ssd1306_display_text(&dev, 5, "    Done", 10, false);
-        printf("3.Mpu6050 test Done!(Address: %d )\n",who_am_i_reg);  
+        printf("3.Mpu6050 test Done!(Address: %d ) ",who_am_i_reg); 
+        printf("\xE2\x9C\x93\n"); 
     }
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     printf("--------------------------------------------------------------------------\n");
@@ -331,11 +334,13 @@ void app_main(void)
       vTaskDelay(100/portTICK_PERIOD_MS);
     }
     printf("--------------------------------------------------------------------------\n");
-    printf("4.All Buttons works Fine!\n");
+    printf("4.All Buttons works Fine! ");
+    printf("\xE2\x9C\x93\n");
     vTaskDelay(400/portTICK_PERIOD_MS);
     ssd1306_bitmaps(&dev, 0, 0, all_done, 128, 64, false);
     ssd1306_display_text(&dev, 7, "   Good to go!", 15, true);
-    printf("All test done :)\n");
+    printf("All test done :) ");
+    printf("\xE2\x9C\x93\n");
 
 }
 
