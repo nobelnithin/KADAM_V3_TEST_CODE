@@ -379,10 +379,9 @@ void app_main(void)
     printf("Connect Charger!");
     xTaskCreate(VBUS_INTRTask, "VBUS_INTRTask", 8000, NULL, 1, NULL);
 
-    ssd1306_clear_screen(&dev, false);
     while(vbus_flag)
     {
-        ssd1306_display_text(&dev, 1, "Connect", 8, false);
+                                                                ssd1306_display_text(&dev, 1, "Connect", 8, false);
         ssd1306_display_text(&dev, 3, "  Charger", 10, false);
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
